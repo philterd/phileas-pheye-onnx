@@ -7,12 +7,14 @@ module lets phileas run a GLiNER model in-process instead, with no PhEye server.
 artifact so that phileas core stays lightweight: only applications that want local inference pull
 the native ONNX Runtime and tokenizer dependencies.
 
+**Documentation:** [philterd.github.io/phileas-pheye-onnx](https://philterd.github.io/phileas-pheye-onnx/).
+
 ## How it plugs in
 
 phileas core defines a small SPI in `ai.philterd.phileas.services.filters.ai.pheye`:
 
-- `PhEyeDetector` — produces raw detections (`PhEyeSpan`) for a piece of text.
-- `PhEyeDetectorProvider` — builds a local detector; discovered via `java.util.ServiceLoader`.
+- `PhEyeDetector`: produces raw detections (`PhEyeSpan`) for a piece of text.
+- `PhEyeDetectorProvider`: builds a local detector, discovered via `java.util.ServiceLoader`.
 
 When a PhEye filter is configured with a `modelPath` (the policy field, or phisql's
 `DETECT PHEYE ... MODEL '<path>'`), `PhEyeFilter` looks up a `PhEyeDetectorProvider` on the
@@ -45,9 +47,9 @@ Point a PhEye filter at a local model directory (policy JSON):
 
 The model directory is the layout produced by `ph-eye-model-training`'s `./hub/publish.sh`:
 
-- `model.onnx` (or `onnx/model.onnx`) — the exported GLiNER model
-- `tokenizer.json` — the HuggingFace fast tokenizer
-- `gliner_config.json` — span width, max length, prompt tokens
+- `model.onnx` (or `onnx/model.onnx`): the exported GLiNER model
+- `tokenizer.json`: the HuggingFace fast tokenizer
+- `gliner_config.json`: span width, max length, prompt tokens
 
 ## What it does (GLiNER 0.2.25 uni-encoder span port)
 
@@ -65,10 +67,9 @@ The `PhEyeFilter` then applies its per-label thresholds and replacement strategi
 
 ## Status and the parity gate
 
-This is a faithful port of the reference algorithm, but it is **not yet validated end to end**:
-
-- It has not been compiled against the ONNX Runtime and DJL tokenizer dependencies in this environment.
-- It has **not** been parity-tested against the Python `gliner` model.
+This is a faithful port of the reference algorithm, but it is **not yet validated end to end**. It
+compiles and runs against ONNX Runtime and the DJL tokenizer, but it has **not** been parity-tested
+against the Python `gliner` model.
 
 A redaction model that decodes spans incorrectly silently leaks names, so before production use the
 following must be confirmed against an actual exported model (a parity test, `LocalPhEyeDetectorParityTest`,
