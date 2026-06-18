@@ -28,32 +28,29 @@ jobs:
           java-version: "25"
           cache: maven
 
-      # phileas is a provided dependency at a -SNAPSHOT version and the pom declares no repositories,
-      # so point Maven at the Philterd snapshot/release repositories to resolve it.
-      - name: Configure Maven settings for the Philterd repositories
+      # phileas is a provided dependency at a -SNAPSHOT version and the pom declares no repositories.
+      # Releases resolve from Maven Central by default; snapshots come from the Central snapshots
+      # repository, which is not enabled by default, so add it here.
+      - name: Configure Maven settings for Central snapshots
         run: |
           mkdir -p ~/.m2
           cat > ~/.m2/settings.xml <<'XML'
           <settings>
             <profiles>
               <profile>
-                <id>philterd</id>
+                <id>central-snapshots</id>
                 <repositories>
                   <repository>
-                    <id>philterd-repository-releases</id>
-                    <url>https://artifacts.philterd.ai/releases</url>
-                    <snapshots><enabled>false</enabled></snapshots>
-                  </repository>
-                  <repository>
-                    <id>philterd-repository-snapshots</id>
-                    <url>https://artifacts.philterd.ai/snapshots</url>
+                    <id>central-portal-snapshots</id>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                    <releases><enabled>false</enabled></releases>
                     <snapshots><enabled>true</enabled></snapshots>
                   </repository>
                 </repositories>
               </profile>
             </profiles>
             <activeProfiles>
-              <activeProfile>philterd</activeProfile>
+              <activeProfile>central-snapshots</activeProfile>
             </activeProfiles>
           </settings>
           XML
