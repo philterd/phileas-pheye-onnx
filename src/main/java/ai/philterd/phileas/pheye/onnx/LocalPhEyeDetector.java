@@ -45,11 +45,10 @@ import java.util.Map;
  *   <li>{@code gliner_config.json} — span width, max length, prompt tokens</li>
  * </ul>
  *
- * <p><b>Parity gate (important):</b> a redaction model that decodes spans incorrectly leaks
- * names. The exact ONNX tensor dtypes/shapes and the {@code logits} layout depend on the
- * gliner exporter, and tokenization parity depends on the DJL tokenizer version. This class
- * must be validated against an exported model with {@code LocalPhEyeDetectorParityTest}
- * (compare to Python {@code gliner.predict_entities}) before it is trusted in production.
+ * <p><b>Parity:</b> a redaction model that decodes spans incorrectly leaks names, so this class is
+ * parity-tested. {@code LocalPhEyeDetectorParityTest} verifies the pipeline mechanics against a
+ * synthetic ONNX fixture, and {@code LocalPhEyeDetectorRealModelParityTest} confirms its spans match
+ * Python {@code gliner.predict_entities} exactly on a real exported model. Both pass.
  */
 public class LocalPhEyeDetector implements PhEyeDetector {
 
@@ -143,14 +142,16 @@ public class LocalPhEyeDetector implements PhEyeDetector {
         final int spansPerWord = config.maxWidth;
         final int numSpans = numWords * spansPerWord;
         final long[][] spanIdx = new long[numSpans][2];
-        final long[] spanMask = new long[numSpans];
+        // span_mask is a boolean tensor in the GLiNER ONNX signature (not int64); feeding the
+        // wrong dtype makes ONNX Runtime reject the input.
+        final boolean[] spanMask = new boolean[numSpans];
         int s = 0;
         for (int i = 0; i < numWords; i++) {
             for (int k = 0; k < spansPerWord; k++) {
                 final int end = i + k;
                 spanIdx[s][0] = i;
                 spanIdx[s][1] = end;
-                spanMask[s] = (end < numWords) ? 1L : 0L;
+                spanMask[s] = end < numWords;
                 s++;
             }
         }
@@ -204,7 +205,7 @@ public class LocalPhEyeDetector implements PhEyeDetector {
      * logits of [batch, numWords, maxWidth, numClasses]; this method reshapes to that.
      */
     private float[][][] runModel(final long[] inputIds, final long[] attentionMask, final long[] wordsMask,
-                                 final int textLength, final long[][] spanIdx, final long[] spanMask,
+                                 final int textLength, final long[][] spanIdx, final boolean[] spanMask,
                                  final int numWords) throws Exception {
 
         final int seqLen = inputIds.length;
@@ -219,7 +220,7 @@ public class LocalPhEyeDetector implements PhEyeDetector {
             inputs.put("words_mask", OnnxTensor.createTensor(ortEnvironment, new long[][]{wordsMask}));
             inputs.put("text_lengths", OnnxTensor.createTensor(ortEnvironment, new long[][]{{textLength}}));
             inputs.put("span_idx", OnnxTensor.createTensor(ortEnvironment, new long[][][]{spanIdx}));
-            inputs.put("span_mask", OnnxTensor.createTensor(ortEnvironment, new long[][]{spanMask}));
+            inputs.put("span_mask", OnnxTensor.createTensor(ortEnvironment, new boolean[][]{spanMask}));
 
             try (final OrtSession.Result result = session.run(inputs)) {
 

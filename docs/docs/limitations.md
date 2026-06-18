@@ -1,18 +1,12 @@
 # Limitations and Accuracy
 
-This module is a faithful port of the GLiNER reference algorithm, but local inference has not yet been validated end to end against the Python `gliner` model. Treat it as functional but unverified until the parity checks below pass.
+This module is a port of the GLiNER reference algorithm, and local inference is parity-tested against the Python `gliner` model.
 
 ## Parity status
 
-The module compiles and runs against ONNX Runtime and the DJL tokenizer, but it has not been parity-tested against the Python `gliner` model. A redaction model that decodes spans incorrectly can silently miss names, so before relying on local inference for anything that matters, confirm it produces the same spans as the reference pipeline.
+The detector is verified two ways. `LocalPhEyeDetectorParityTest` runs it against a tiny synthetic ONNX fixture (with real ONNX Runtime and the real DJL tokenizer) and asserts the deterministic spans, exercising the tensor wiring, the words-mask and span enumeration, the sigmoid/threshold/greedy-non-overlap decode, and the word-to-character offset mapping. `LocalPhEyeDetectorRealModelParityTest` runs it against a real exported GLiNER model (provided via `PHILEAS_GLINER_MODEL_DIR`) and asserts its spans match the Python `gliner.predict_entities` reference exactly: same offsets and labels, scores within tolerance. Both pass.
 
-A parity test (`LocalPhEyeDetectorParityTest`) should compare this detector to Python `gliner.predict_entities` on sample text and require exact agreement. Until that passes, prefer the remote PhEye detector for production, or validate the local detector's output on your own representative documents first.
-
-The specific things to confirm against an actual exported model:
-
-- The exported model's ONNX input dtypes and shapes (this code uses int64 tensors) and the `logits` output layout.
-- The DJL tokenizer behavior used (`getWordIds()`, pre-split `encode(String[])`) matches the model's tokenizer parity.
-- Span ordering and the word-to-character offset mapping produce identical spans to the Python pipeline.
+Verifying parity surfaced and fixed a real bug: `span_mask` is a boolean tensor in the GLiNER ONNX signature, and the detector had been feeding it as int64, which ONNX Runtime rejects. The detector now reproduces the Python reference on real weights.
 
 ## Accuracy
 
