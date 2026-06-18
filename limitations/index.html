@@ -520,16 +520,10 @@
 
 
 <h1 id="limitations-and-accuracy">Limitations and Accuracy</h1>
-<p>This module is a faithful port of the GLiNER reference algorithm, but local inference has not yet been validated end to end against the Python <code>gliner</code> model. Treat it as functional but unverified until the parity checks below pass.</p>
+<p>This module is a port of the GLiNER reference algorithm, and local inference is parity-tested against the Python <code>gliner</code> model.</p>
 <h2 id="parity-status">Parity status</h2>
-<p>The module compiles and runs against ONNX Runtime and the DJL tokenizer, but it has not been parity-tested against the Python <code>gliner</code> model. A redaction model that decodes spans incorrectly can silently miss names, so before relying on local inference for anything that matters, confirm it produces the same spans as the reference pipeline.</p>
-<p>A parity test (<code>LocalPhEyeDetectorParityTest</code>) should compare this detector to Python <code>gliner.predict_entities</code> on sample text and require exact agreement. Until that passes, prefer the remote PhEye detector for production, or validate the local detector's output on your own representative documents first.</p>
-<p>The specific things to confirm against an actual exported model:</p>
-<ul>
-<li>The exported model's ONNX input dtypes and shapes (this code uses int64 tensors) and the <code>logits</code> output layout.</li>
-<li>The DJL tokenizer behavior used (<code>getWordIds()</code>, pre-split <code>encode(String[])</code>) matches the model's tokenizer parity.</li>
-<li>Span ordering and the word-to-character offset mapping produce identical spans to the Python pipeline.</li>
-</ul>
+<p>The detector is verified two ways. <code>LocalPhEyeDetectorParityTest</code> runs it against a tiny synthetic ONNX fixture (with real ONNX Runtime and the real DJL tokenizer) and asserts the deterministic spans, exercising the tensor wiring, the words-mask and span enumeration, the sigmoid/threshold/greedy-non-overlap decode, and the word-to-character offset mapping. <code>LocalPhEyeDetectorRealModelParityTest</code> runs it against a real exported GLiNER model (provided via <code>PHILEAS_GLINER_MODEL_DIR</code>) and asserts its spans match the Python <code>gliner.predict_entities</code> reference exactly: same offsets and labels, scores within tolerance. Both pass.</p>
+<p>Verifying parity surfaced and fixed a real bug: <code>span_mask</code> is a boolean tensor in the GLiNER ONNX signature, and the detector had been feeding it as int64, which ONNX Runtime rejects. The detector now reproduces the Python reference on real weights.</p>
 <h2 id="accuracy">Accuracy</h2>
 <p>Detection with these models is probabilistic. A name detector will miss some names and flag some non-names, and accuracy depends on how close your text is to the data the model was trained on. Local inference does not change a model's accuracy: it runs the same model the remote PhEye service would, so the same calibration and recommended thresholds apply. Validate any model on your own text and set thresholds accordingly. You remain responsible for the personal data you process.</p>
 <h2 id="related">Related</h2>
