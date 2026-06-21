@@ -1,0 +1,102 @@
+name: build
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      # phileas is a provided dependency at a -SNAPSHOT version and the pom declares no
+      # repositories. Snapshots come from the Central snapshots repository, which is not
+      # enabled by default, so enable it here to resolve phileas during the build.
+      - name: Configure Maven settings for Central snapshots
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <profiles>
+              <profile>
+                <id>central-snapshots</id>
+                <repositories>
+                  <repository>
+                    <id>central-portal-snapshots</id>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                    <releases><enabled>false</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                  </repository>
+                </repositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>central-snapshots</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+      - name: Run the Maven verify phase
+        run: mvn --batch-mode --update-snapshots package
+
+  publish-snapshot:
+    # Publish a -SNAPSHOT to the Maven Central snapshot repository on every push
+    # to main, but only after the build job passes. Never runs on pull requests
+    # (which keeps the credentials away from fork builds).
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: publish-snapshot-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      # Both the Central snapshots repository (to resolve the phileas -SNAPSHOT dependency)
+      # and the credentials for the 'central' server (to deploy). The credentials are read
+      # from environment variables at Maven runtime, so the quoted heredoc must keep the
+      # ${env.*} placeholders literal.
+      - name: Configure Maven settings (Central snapshots + credentials)
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${env.MAVEN_CENTRAL_USERNAME}</username>
+                <password>${env.MAVEN_CENTRAL_PASSWORD}</password>
+              </server>
+            </servers>
+            <profiles>
+              <profile>
+                <id>central-snapshots</id>
+                <repositories>
+                  <repository>
+                    <id>central-portal-snapshots</id>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                    <releases><enabled>false</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                  </repository>
+                </repositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>central-snapshots</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+      - name: Publish snapshot to Maven Central
+        run: mvn --batch-mode --no-transfer-progress -DskipTests deploy
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
