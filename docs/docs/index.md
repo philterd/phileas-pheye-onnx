@@ -21,28 +21,15 @@ Add the dependency alongside `phileas`:
 <dependency>
     <groupId>ai.philterd</groupId>
     <artifactId>phileas-pheye-onnx</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
-The `4.1.0-SNAPSHOT` builds are development builds published to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To resolve them, add the snapshot repository to your build (this module's snapshot lives there; the `phileas` dependency itself resolves from the default Maven Central repository):
+Releases are published to Maven Central and resolve with no extra repository configuration.
 
-```xml
-<repositories>
-    <repository>
-        <id>central-portal-snapshots</id>
-        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-        <releases>
-            <enabled>false</enabled>
-        </releases>
-        <snapshots>
-            <enabled>true</enabled>
-        </snapshots>
-    </repository>
-</repositories>
-```
+This module is versioned independently of `phileas` (like [`phisql`](https://github.com/philterd/phisql)), because it has its own API and release cadence. It does implement an SPI from `phileas` core, so each release targets a specific `phileas` version: `phileas-pheye-onnx` `1.0.0` targets `phileas` `4.1.0`. Use a `phileas-pheye-onnx` build that matches the `phileas` you run.
 
-Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to reproduce. Once a `4.1.0` release is cut it will resolve from the default Maven Central repository, with no extra repository configuration.
+Development builds are published as `-SNAPSHOT` versions to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To use one, add that repository (`https://central.sonatype.com/repository/maven-snapshots/`) to your build. Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to reproduce.
 
 Adding the artifact to the classpath is all that is needed to enable local inference. The module registers its detector provider through `java.util.ServiceLoader`, so Phileas discovers it automatically. See [How It Works](how-it-works.md) for the mechanism.
 

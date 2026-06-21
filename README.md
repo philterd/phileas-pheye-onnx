@@ -30,33 +30,18 @@ Add the dependency alongside `phileas`:
 <dependency>
     <groupId>ai.philterd</groupId>
     <artifactId>phileas-pheye-onnx</artifactId>
-    <version>4.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
-`4.1.0-SNAPSHOT` is a development build published to the Maven Central snapshot repository, which is
-not served from the default Maven Central repository. To resolve it, add the snapshot repository to
-your build (this module's snapshot lives there; the `phileas` dependency itself resolves from the
-default Maven Central repository):
+This module is versioned independently of `phileas` (like [`phisql`](https://github.com/philterd/phisql)),
+because it has its own API and release cadence. It does, however, implement an SPI from `phileas`
+core, so each release targets a specific `phileas` version. Use a `phileas-pheye-onnx` build that
+matches the `phileas` you run:
 
-```xml
-<repositories>
-    <repository>
-        <id>central-portal-snapshots</id>
-        <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-        <releases>
-            <enabled>false</enabled>
-        </releases>
-        <snapshots>
-            <enabled>true</enabled>
-        </snapshots>
-    </repository>
-</repositories>
-```
-
-Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to
-reproduce. Once a `4.1.0` release is cut it will resolve from the default Maven Central repository,
-with no extra repository configuration.
+| phileas-pheye-onnx | phileas |
+|--------------------|---------|
+| 1.0.0              | 4.1.0   |
 
 Point a PhEye filter at a local model directory (policy JSON):
 
@@ -109,5 +94,7 @@ GLiNER ONNX signature, and the detector had been feeding it as int64, which ONNX
 The detector now reproduces the Python reference on real weights.
 
 ## License
+
+Copyright 2026 Philterd, LLC.
 
 Apache-2.0.
