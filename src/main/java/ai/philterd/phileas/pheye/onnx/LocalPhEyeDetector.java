@@ -255,8 +255,11 @@ public class LocalPhEyeDetector implements PhEyeDetector {
         return array;
     }
 
-    /** Greedy flat NER: keep highest-scoring spans that do not overlap already-kept ones. */
-    private static List<Candidate> greedyNonOverlap(final List<Candidate> candidates) {
+    /**
+     * Greedy flat NER: keep highest-scoring spans that do not overlap already-kept ones.
+     * Package-private so it can be unit-tested directly (see {@code GreedyNonOverlapTest}).
+     */
+    static List<Candidate> greedyNonOverlap(final List<Candidate> candidates) {
         candidates.sort((a, b) -> Double.compare(b.score, a.score));
         final List<Candidate> kept = new ArrayList<>();
         for (final Candidate c : candidates) {
@@ -289,7 +292,7 @@ public class LocalPhEyeDetector implements PhEyeDetector {
         }
     }
 
-    /** A scored candidate span over word indices (inclusive) for a given class. */
-    private record Candidate(int startWord, int endWord, int classIndex, double score) {}
+    /** A scored candidate span over word indices (inclusive) for a given class. Package-private for testing. */
+    record Candidate(int startWord, int endWord, int classIndex, double score) {}
 
 }

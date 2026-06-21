@@ -13,6 +13,8 @@ When a PhEye filter is configured with a `modelPath` (the policy field, or PhiSQ
 
 This module ships `LocalPhEyeDetectorProvider` and registers it in `META-INF/services/ai.philterd.phileas.services.filters.ai.pheye.PhEyeDetectorProvider`. Because the provider is registered for `ServiceLoader`, simply adding this module as a dependency makes local inference available. No extra wiring is required.
 
+If a policy sets a `modelPath` but this module is not on the classpath, Phileas does not silently fall back to the remote detector. It fails fast while the policy's filters are built (for example when you call `prepare(policy)`, or on the first `filter()` call for the policy) with a `MissingPhEyeProviderException` and a logged error naming this dependency, so the missing module surfaces when the policy is loaded rather than part-way through a document.
+
 The detector returns `PhEyeSpan` results. The `PhEyeFilter` then applies its per-label thresholds and replacement strategies on top, exactly as it does for remote detections, so the rest of the redaction policy behaves identically whether detection ran locally or remotely.
 
 ## The GLiNER pipeline
