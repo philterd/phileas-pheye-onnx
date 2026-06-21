@@ -36,7 +36,8 @@ Add the dependency alongside `phileas`:
 
 `4.1.0-SNAPSHOT` is a development build published to the Maven Central snapshot repository, which is
 not served from the default Maven Central repository. To resolve it, add the snapshot repository to
-your build (it serves both `phileas` and this module):
+your build (this module's snapshot lives there; the `phileas` dependency itself resolves from the
+default Maven Central repository):
 
 ```xml
 <repositories>
