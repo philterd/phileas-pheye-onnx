@@ -559,6 +559,21 @@
     &lt;version&gt;4.1.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
+<p>The <code>4.1.0-SNAPSHOT</code> builds are development builds published to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To resolve them, add the snapshot repository to your build (it serves both <code>phileas</code> and this module):</p>
+<pre><code class="language-xml">&lt;repositories&gt;
+    &lt;repository&gt;
+        &lt;id&gt;central-portal-snapshots&lt;/id&gt;
+        &lt;url&gt;https://central.sonatype.com/repository/maven-snapshots/&lt;/url&gt;
+        &lt;releases&gt;
+            &lt;enabled&gt;false&lt;/enabled&gt;
+        &lt;/releases&gt;
+        &lt;snapshots&gt;
+            &lt;enabled&gt;true&lt;/enabled&gt;
+        &lt;/snapshots&gt;
+    &lt;/repository&gt;
+&lt;/repositories&gt;
+</code></pre>
+<p>Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to reproduce. Once a <code>4.1.0</code> release is cut it will resolve from the default Maven Central repository, with no extra repository configuration.</p>
 <p>Adding the artifact to the classpath is all that is needed to enable local inference. The module registers its detector provider through <code>java.util.ServiceLoader</code>, so Phileas discovers it automatically. See <a href="how-it-works/">How It Works</a> for the mechanism.</p>
 <h2 id="next-steps">Next steps</h2>
 <ul>
