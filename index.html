@@ -559,7 +559,7 @@
     &lt;version&gt;4.1.0-SNAPSHOT&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p>The <code>4.1.0-SNAPSHOT</code> builds are development builds published to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To resolve them, add the snapshot repository to your build (it serves both <code>phileas</code> and this module):</p>
+<p>The <code>4.1.0-SNAPSHOT</code> builds are development builds published to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To resolve them, add the snapshot repository to your build (this module's snapshot lives there; the <code>phileas</code> dependency itself resolves from the default Maven Central repository):</p>
 <pre><code class="language-xml">&lt;repositories&gt;
     &lt;repository&gt;
         &lt;id&gt;central-portal-snapshots&lt;/id&gt;
