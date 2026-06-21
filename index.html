@@ -556,24 +556,12 @@
 <pre><code class="language-xml">&lt;dependency&gt;
     &lt;groupId&gt;ai.philterd&lt;/groupId&gt;
     &lt;artifactId&gt;phileas-pheye-onnx&lt;/artifactId&gt;
-    &lt;version&gt;4.1.0-SNAPSHOT&lt;/version&gt;
+    &lt;version&gt;1.0.0&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p>The <code>4.1.0-SNAPSHOT</code> builds are development builds published to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To resolve them, add the snapshot repository to your build (this module's snapshot lives there; the <code>phileas</code> dependency itself resolves from the default Maven Central repository):</p>
-<pre><code class="language-xml">&lt;repositories&gt;
-    &lt;repository&gt;
-        &lt;id&gt;central-portal-snapshots&lt;/id&gt;
-        &lt;url&gt;https://central.sonatype.com/repository/maven-snapshots/&lt;/url&gt;
-        &lt;releases&gt;
-            &lt;enabled&gt;false&lt;/enabled&gt;
-        &lt;/releases&gt;
-        &lt;snapshots&gt;
-            &lt;enabled&gt;true&lt;/enabled&gt;
-        &lt;/snapshots&gt;
-    &lt;/repository&gt;
-&lt;/repositories&gt;
-</code></pre>
-<p>Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to reproduce. Once a <code>4.1.0</code> release is cut it will resolve from the default Maven Central repository, with no extra repository configuration.</p>
+<p>Releases are published to Maven Central and resolve with no extra repository configuration.</p>
+<p>This module is versioned independently of <code>phileas</code> (like <a href="https://github.com/philterd/phisql"><code>phisql</code></a>), because it has its own API and release cadence. It does implement an SPI from <code>phileas</code> core, so each release targets a specific <code>phileas</code> version: <code>phileas-pheye-onnx</code> <code>1.0.0</code> targets <code>phileas</code> <code>4.1.0</code>. Use a <code>phileas-pheye-onnx</code> build that matches the <code>phileas</code> you run.</p>
+<p>Development builds are published as <code>-SNAPSHOT</code> versions to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To use one, add that repository (<code>https://central.sonatype.com/repository/maven-snapshots/</code>) to your build. Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to reproduce.</p>
 <p>Adding the artifact to the classpath is all that is needed to enable local inference. The module registers its detector provider through <code>java.util.ServiceLoader</code>, so Phileas discovers it automatically. See <a href="how-it-works/">How It Works</a> for the mechanism.</p>
 <h2 id="next-steps">Next steps</h2>
 <ul>
