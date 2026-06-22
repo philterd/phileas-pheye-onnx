@@ -16,3 +16,6 @@ nav:
   - Model Directory: model-directory.md
   - Configuration: configuration.md
   - Limitations and Accuracy: limitations.md
+extra:
+  version:
+    provider: mike
