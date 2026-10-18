@@ -56,4 +56,4 @@ jobs:
           XML
 
       - name: Run the model-download end-to-end test
-        run: mvn -B test -Dtest=LocalPhEyeDetectorDownloadE2ETest
+        run: mvn -B --update-snapshots test -Dtest=LocalPhEyeDetectorDownloadE2ETest
