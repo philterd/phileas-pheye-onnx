@@ -61,6 +61,10 @@ The model directory is the layout produced by `ph-eye-model-training`'s `./hub/p
 - `tokenizer.json`: the HuggingFace fast tokenizer
 - `gliner_config.json`: span width, max length, prompt tokens
 
+A model directory is loaded once per process and shared by every PhEye filter that names it, by its
+resolved path, so symbolic links and `..` reach the same copy. A loaded model is kept until the process
+exits, and changing the files on disk has no effect until a restart.
+
 ## What it does (GLiNER 0.2.25 uni-encoder span port)
 
 `LocalPhEyeDetector` reimplements the pipeline PhEye runs through the Python `gliner` library:

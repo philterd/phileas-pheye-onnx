@@ -19,11 +19,16 @@ import ai.philterd.phileas.services.filters.ai.pheye.PhEyeConfiguration;
 import ai.philterd.phileas.services.filters.ai.pheye.PhEyeDetector;
 import ai.philterd.phileas.services.filters.ai.pheye.PhEyeDetectorProvider;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -70,6 +75,53 @@ class LocalPhEyeDetectorProviderTest {
         try (final PhEyeDetector detector = new LocalPhEyeDetectorProvider().create(configuration)) {
             assertNotNull(detector);
         }
+    }
+
+    @Test
+    void policiesNamingTheSameDirectoryShareOneModel(@TempDir final Path temp) throws Exception {
+        final Path dir = FixtureModel.dir();
+        assumeTrue(dir != null, "GLiNER fixture not on the classpath; skipping shared-detector test.");
+
+        // A symbolic link and a path with ".." name the same directory.
+        final Path link = Files.createSymbolicLink(temp.resolve("model"), dir);
+        final LocalPhEyeDetectorProvider provider = new LocalPhEyeDetectorProvider();
+
+        final PhEyeDetector first = provider.create(configuration(dir.toString()));
+        first.close();
+        final PhEyeDetector second = provider.create(configuration(link.toString()));
+        final PhEyeDetector third = provider.create(configuration(dir.resolve("..").resolve(dir.getFileName()).toString()));
+
+        assertSame(shared(first), shared(second));
+        assertSame(shared(first), shared(third));
+        // Closing one handle leaves the shared model usable.
+        assertTrue(second.detect("Alice Bob", List.of("person"), "ctx", 0).size() == 1);
+    }
+
+    @Test
+    void differentDirectoriesGetDifferentModels(@TempDir final Path temp) throws Exception {
+        final Path dir = FixtureModel.dir();
+        assumeTrue(dir != null, "GLiNER fixture not on the classpath; skipping shared-detector test.");
+
+        final Path copy = Files.createDirectory(temp.resolve("copy"));
+        try (final var files = Files.list(dir)) {
+            for (final Path file : files.toList()) {
+                Files.copy(file, copy.resolve(file.getFileName()));
+            }
+        }
+        final LocalPhEyeDetectorProvider provider = new LocalPhEyeDetectorProvider();
+
+        assertNotSame(shared(provider.create(configuration(dir.toString()))),
+                shared(provider.create(configuration(copy.toString()))));
+    }
+
+    private static PhEyeConfiguration configuration(final String modelPath) {
+        final PhEyeConfiguration configuration = new PhEyeConfiguration("http://localhost:18080");
+        configuration.setModelPath(modelPath);
+        return configuration;
+    }
+
+    private static LocalPhEyeDetector shared(final PhEyeDetector detector) {
+        return ((LocalPhEyeDetectorProvider.SharedDetector) detector).detector();
     }
 
 }

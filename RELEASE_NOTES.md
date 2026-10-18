@@ -7,6 +7,7 @@ Full changelogs for each release are available in the [GitHub releases](https://
 ## Version 1.1.0 - Not yet released
 
 * Targets Phileas 4.5.0.
+* A model directory is loaded once per process and shared by every PhEye filter that names it. Previously each filter set loaded its own copy, so every policy, and every revision of one, held another copy of the model in memory.
 * Text longer than 512 tokens is no longer truncated by the tokenizer, matching the Python gliner library. Previously the last words of such text got no tokens and could be reported as spurious detections. A word left without a token now fails the detection instead of being scored.
 
 ## Version 1.0.0 - June 21, 2026

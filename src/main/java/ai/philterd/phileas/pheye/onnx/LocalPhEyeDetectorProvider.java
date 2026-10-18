@@ -19,7 +19,14 @@ import ai.philterd.phileas.services.filters.ai.pheye.PhEyeConfiguration;
 import ai.philterd.phileas.services.filters.ai.pheye.PhEyeDetector;
 import ai.philterd.phileas.services.filters.ai.pheye.PhEyeDetectorProvider;
 
+import ai.philterd.phileas.services.filters.ai.pheye.PhEyeSpan;
+
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * {@link PhEyeDetectorProvider} that builds a local ONNX Runtime GLiNER detector. Registered
@@ -27,6 +34,10 @@ import java.nio.file.Path;
  * when a {@code modelPath} is configured.
  */
 public class LocalPhEyeDetectorProvider implements PhEyeDetectorProvider {
+
+    // One detector per model directory for the life of the process: every policy that names a directory
+    // shares its loaded model, rather than each filter set loading its own copy.
+    private static final ConcurrentMap<Path, LocalPhEyeDetector> DETECTORS = new ConcurrentHashMap<>();
 
     @Override
     public PhEyeDetector create(final PhEyeConfiguration configuration) throws Exception {
@@ -37,7 +48,33 @@ public class LocalPhEyeDetectorProvider implements PhEyeDetectorProvider {
             throw new IllegalArgumentException("PhEyeConfiguration.modelPath must be set to build a local detector.");
         }
 
-        return new LocalPhEyeDetector(Path.of(modelPath));
+        final Path modelDir = Path.of(modelPath).toRealPath();
+
+        try {
+            return new SharedDetector(DETECTORS.computeIfAbsent(modelDir, dir -> {
+                try {
+                    return new LocalPhEyeDetector(dir);
+                } catch (final Exception e) {
+                    throw new CompletionException(e);
+                }
+            }));
+        } catch (final CompletionException e) {
+            if (e.getCause() instanceof Exception cause) {
+                throw cause;
+            }
+            throw e;
+        }
+
+    }
+
+    /** A handle on a shared detector. Closing it does nothing, since other policies may be using the model. */
+    record SharedDetector(LocalPhEyeDetector detector) implements PhEyeDetector {
+
+        @Override
+        public List<PhEyeSpan> detect(final String text, final Collection<String> labels,
+                                      final String context, final int piece) throws Exception {
+            return detector.detect(text, labels, context, piece);
+        }
 
     }
 
