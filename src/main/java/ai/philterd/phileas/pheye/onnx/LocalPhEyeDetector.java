@@ -69,7 +69,9 @@ public class LocalPhEyeDetector implements PhEyeDetector {
                     + "'. Only 'whitespace' is supported by this detector.");
         }
 
-        this.tokenizer = HuggingFaceTokenizer.newInstance(modelDir.resolve("tokenizer.json"));
+        // DJL truncates to 512 tokens by default, which would leave the last text words with no tokens.
+        // The Python gliner tokenizer does not truncate; text is bounded by max_len words instead.
+        this.tokenizer = HuggingFaceTokenizer.newInstance(modelDir.resolve("tokenizer.json"), Map.of("truncation", "false"));
 
         final Path onnx = resolveOnnxPath(modelDir);
         this.ortEnvironment = OrtEnvironment.getEnvironment();
@@ -128,14 +130,21 @@ public class LocalPhEyeDetector implements PhEyeDetector {
         // (mirrors prepare_word_mask with skip_first_words=promptWordCount).
         final long[] wordsMask = new long[seqLen];
         long previousWordId = Long.MIN_VALUE;
+        int maskedWords = 0;
         for (int t = 0; t < seqLen; t++) {
             final long wid = wordIds[t];
             if (wid >= promptWordCount && wid != previousWordId) {
                 wordsMask[t] = wid - promptWordCount + 1;
+                maskedWords++;
             } else {
                 wordsMask[t] = 0;
             }
             previousWordId = wid;
+        }
+
+        // A word with no token would be scored from padding, producing spans that are not in the text.
+        if (maskedWords != numWords) {
+            throw new IllegalStateException("Tokenization covered " + maskedWords + " of " + numWords + " words.");
         }
 
         // 4. Enumerate candidate spans [i, i+width] for width in 0..maxWidth-1; mask out-of-range.

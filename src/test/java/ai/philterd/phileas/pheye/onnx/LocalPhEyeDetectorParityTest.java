@@ -115,4 +115,22 @@ class LocalPhEyeDetectorParityTest {
 
     }
 
+    @Test
+    void longInputPastTheTokenLimitIsFullyTokenized() throws Exception {
+
+        final Path dir = fixtureDir();
+        assumeTrue(dir != null, "GLiNER fixture model.onnx not on the test classpath; skipping parity test.");
+
+        try (final LocalPhEyeDetector detector = new LocalPhEyeDetector(dir)) {
+
+            // Under max_len (384) words but well over 512 tokens: every word must still get a token.
+            final String text = "Alice Bob" + " qzxvjkwq".repeat(300);
+            final List<PhEyeSpan> spans = detector.detect(text, List.of("person"), "ctx", 0);
+
+            assertEquals(1, spans.size());
+            assertEquals("Alice Bob", spans.get(0).getText());
+        }
+
+    }
+
 }
