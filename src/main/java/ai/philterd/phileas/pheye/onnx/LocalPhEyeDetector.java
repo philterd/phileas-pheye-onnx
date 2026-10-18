@@ -327,6 +327,18 @@ public class LocalPhEyeDetector implements PhEyeDetector {
         return 1.0 / (1.0 + Math.exp(-x));
     }
 
+    /** The model's {@code max_len}: it examines no more text words in one call. */
+    @Override
+    public int maxWords() {
+        return config.maxLen;
+    }
+
+    /** The model's {@code max_width}: the most words one span covers. */
+    @Override
+    public int maxWidth() {
+        return config.maxWidth;
+    }
+
     @Override
     public void close() throws Exception {
         if (session != null) {

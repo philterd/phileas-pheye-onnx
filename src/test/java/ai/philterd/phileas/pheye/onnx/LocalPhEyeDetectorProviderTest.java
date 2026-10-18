@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.ServiceLoader;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -122,6 +123,18 @@ class LocalPhEyeDetectorProviderTest {
 
     private static LocalPhEyeDetector shared(final PhEyeDetector detector) {
         return ((LocalPhEyeDetectorProvider.SharedDetector) detector).detector();
+    }
+
+    @Test
+    void reportsTheModelsLimitsThroughTheSharedHandle() throws Exception {
+        final Path dir = FixtureModel.dir();
+        assumeTrue(dir != null, "GLiNER fixture not on the classpath; skipping limits test.");
+
+        // The fixture's gliner_config.json sets max_len 384 and max_width 12.
+        final PhEyeDetector detector = new LocalPhEyeDetectorProvider().create(configuration(dir.toString()));
+
+        assertEquals(384, detector.maxWords());
+        assertEquals(12, detector.maxWidth());
     }
 
 }

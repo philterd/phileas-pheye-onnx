@@ -76,6 +76,16 @@ public class LocalPhEyeDetectorProvider implements PhEyeDetectorProvider {
             return detector.detect(text, labels, context, piece);
         }
 
+        @Override
+        public int maxWords() {
+            return detector.maxWords();
+        }
+
+        @Override
+        public int maxWidth() {
+            return detector.maxWidth();
+        }
+
     }
 
 }
