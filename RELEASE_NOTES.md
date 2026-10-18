@@ -7,6 +7,7 @@ Full changelogs for each release are available in the [GitHub releases](https://
 ## Version 1.1.0 - Not yet released
 
 * Targets Phileas 4.5.0.
+* ONNX Runtime uses `Runtime.availableProcessors()` intra-op threads, which follows a container's CPU set and quota, with spinning off. Previously it started a thread per physical core of the host, which in a container limited to 4 of 6 cores more than doubled the time for a long text, and under a CPU quota tripled it or worse. Set `PHEYE_ONNX_THREADS` or `pheye.onnx.threads` to override the count.
 * A model directory is loaded once per process and shared by every PhEye filter that names it. Previously each filter set loaded its own copy, so every policy, and every revision of one, held another copy of the model in memory.
 * Text longer than 512 tokens is no longer truncated by the tokenizer, matching the Python gliner library. Previously the last words of such text got no tokens and could be reported as spurious detections. A word left without a token now fails the detection instead of being scored.
 

@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 /**
  * On-device GLiNER inference via ONNX Runtime. This is a Java port of the GLiNER 0.2.25
@@ -55,6 +56,9 @@ public class LocalPhEyeDetector implements PhEyeDetector {
     // Default confidence threshold; the PhEyeFilter applies its own per-label thresholds on top.
     private static final double DEFAULT_THRESHOLD = 0.5;
 
+    static final String THREADS_ENV = "PHEYE_ONNX_THREADS";
+    static final String THREADS_PROPERTY = "pheye.onnx.threads";
+
     private final GlinerConfig config;
     private final HuggingFaceTokenizer tokenizer;
     private final OrtEnvironment ortEnvironment;
@@ -75,8 +79,40 @@ public class LocalPhEyeDetector implements PhEyeDetector {
 
         final Path onnx = resolveOnnxPath(modelDir);
         this.ortEnvironment = OrtEnvironment.getEnvironment();
-        this.session = ortEnvironment.createSession(onnx.toString(), new OrtSession.SessionOptions());
+        this.session = ortEnvironment.createSession(onnx.toString(), sessionOptions());
 
+    }
+
+    private static OrtSession.SessionOptions sessionOptions() throws Exception {
+        final OrtSession.SessionOptions options = new OrtSession.SessionOptions();
+        // ONNX Runtime otherwise starts a thread per physical core of the host, ignoring a container's
+        // CPU set or quota. Spinning off keeps idle threads from busy-waiting on CPUs shared with other work.
+        options.setIntraOpNumThreads(threads(System::getProperty, System::getenv, Runtime.getRuntime().availableProcessors()));
+        options.addConfigEntry("session.intra_op.allow_spinning", "0");
+        return options;
+    }
+
+    /** The intra-op thread count: the system property, else the environment variable, else the available processors. */
+    static int threads(final UnaryOperator<String> properties, final UnaryOperator<String> environment,
+                       final int availableProcessors) {
+        String value = properties.apply(THREADS_PROPERTY);
+        String name = THREADS_PROPERTY;
+        if (value == null || value.isBlank()) {
+            value = environment.apply(THREADS_ENV);
+            name = THREADS_ENV;
+        }
+        if (value == null || value.isBlank()) {
+            return availableProcessors;
+        }
+        try {
+            final int threads = Integer.parseInt(value.trim());
+            if (threads > 0) {
+                return threads;
+            }
+        } catch (final NumberFormatException e) {
+            // Reported below.
+        }
+        throw new IllegalArgumentException(name + " must be a positive whole number, not '" + value + "'.");
     }
 
     private static Path resolveOnnxPath(final Path modelDir) {
