@@ -34,6 +34,19 @@ Each model runs with as many ONNX Runtime intra-op threads as `Runtime.available
 
 More threads lower the time one detection takes; fewer give more throughput when many detections run at once, especially under a CPU quota, where concurrent detections with several threads each exceed the quota and are throttled. A model directory is loaded once per process, so the setting applies to every policy that names it.
 
+## GPU
+
+The model runs on the CPU unless `PHEYE_ONNX_DEVICE`, or the `pheye.onnx.device` system property, which takes precedence, is `cuda` (device 0) or `cuda:<n>`. `cpu` is the default. Any other value fails the model's load with an `IllegalArgumentException` naming the setting.
+
+CUDA also needs:
+
+- ONNX Runtime's GPU package. This module depends on `com.microsoft.onnxruntime:onnxruntime`, which is CPU only; replace it in your build with `com.microsoft.onnxruntime:onnxruntime_gpu` of the same version, by excluding `onnxruntime` from this dependency and adding `onnxruntime_gpu`. The GPU package has native libraries for Linux x64 and Windows x64 only, and is about 526 MB against 89 MB, so it is not the default. It also runs on the CPU.
+- The CUDA and cuDNN libraries ONNX Runtime's GPU package is built for, on a host with an NVIDIA GPU. Version 1.20.0 ran with CUDA 12.6 and cuDNN 9 (the `nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04` image).
+
+When CUDA is asked for but cannot be used, because ONNX Runtime is the CPU package or the CUDA libraries or device are missing, a warning is logged and the model runs on the CPU. The device in use is logged when the model loads, for example `Loaded the PhEye model in /models/ph-eye-pii-en-xsmall on cuda:0.`
+
+Tokenizing runs on the CPU in either case. DJL's tokenizer otherwise downloads a CUDA build of its native library from publish.djl.ai on a host where it finds CUDA, which fails without network access, so this module sets `RUST_FLAVOR` to `cpu` when neither the environment variable nor the system property is set, and DJL loads the CPU build it bundles.
+
 ## Thresholds
 
 Confidence thresholds and replacement strategies are configured on the PhEye filter the same way regardless of where detection runs, so a policy written for remote PhEye keeps the same threshold and strategy settings when you switch it to a local model. Each published model has a recommended confidence threshold; use the value documented on the model you load.

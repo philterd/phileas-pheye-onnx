@@ -20,9 +20,13 @@ import ai.djl.huggingface.tokenizers.HuggingFaceTokenizer;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtProvider;
 import ai.onnxruntime.OrtSession;
 import ai.philterd.phileas.services.filters.ai.pheye.PhEyeDetector;
 import ai.philterd.phileas.services.filters.ai.pheye.PhEyeSpan;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +34,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 
 /**
@@ -59,12 +65,21 @@ public class LocalPhEyeDetector implements PhEyeDetector {
     static final String THREADS_ENV = "PHEYE_ONNX_THREADS";
     static final String THREADS_PROPERTY = "pheye.onnx.threads";
 
+    static final String DEVICE_ENV = "PHEYE_ONNX_DEVICE";
+    static final String DEVICE_PROPERTY = "pheye.onnx.device";
+
+    private static final Logger LOGGER = LogManager.getLogger(LocalPhEyeDetector.class);
+
     private final GlinerConfig config;
     private final HuggingFaceTokenizer tokenizer;
     private final OrtEnvironment ortEnvironment;
     private final OrtSession session;
+    private final String device;
 
     public LocalPhEyeDetector(final Path modelDir) throws Exception {
+
+        // Read first, so a bad value fails before anything is loaded.
+        final int cuda = cudaDevice(System::getProperty, System::getenv);
 
         this.config = GlinerConfig.load(modelDir);
 
@@ -73,14 +88,95 @@ public class LocalPhEyeDetector implements PhEyeDetector {
                     + "'. Only 'whitespace' is supported by this detector.");
         }
 
+        useCpuTokenizerLibrary(System::getenv, System::getProperty, System::setProperty);
+
         // DJL truncates to 512 tokens by default, which would leave the last text words with no tokens.
         // The Python gliner tokenizer does not truncate; text is bounded by max_len words instead.
         this.tokenizer = HuggingFaceTokenizer.newInstance(modelDir.resolve("tokenizer.json"), Map.of("truncation", "false"));
 
         final Path onnx = resolveOnnxPath(modelDir);
         this.ortEnvironment = OrtEnvironment.getEnvironment();
-        this.session = ortEnvironment.createSession(onnx.toString(), sessionOptions());
+        OrtSession onCuda = null;
+        if (cuda >= 0) {
+            onCuda = createCudaSession(onnx, cuda);
+        }
+        this.session = onCuda != null ? onCuda : ortEnvironment.createSession(onnx.toString(), sessionOptions());
+        this.device = onCuda != null ? "cuda:" + cuda : "cpu";
+        LOGGER.info("Loaded the PhEye model in {} on {}.", modelDir, device);
 
+    }
+
+    /**
+     * A session on the CUDA device, or null when it cannot be had: ONNX Runtime is the CPU-only package, or CUDA
+     * or the device is not available. The model then runs on the CPU.
+     */
+    private OrtSession createCudaSession(final Path onnx, final int cuda) {
+
+        if (!OrtEnvironment.getAvailableProviders().contains(OrtProvider.CUDA)) {
+            LOGGER.warn("{} or {} asks for CUDA, but this ONNX Runtime has no CUDA provider; running on the CPU. "
+                    + "Use com.microsoft.onnxruntime:onnxruntime_gpu instead of onnxruntime for CUDA.",
+                    DEVICE_ENV, DEVICE_PROPERTY);
+            return null;
+        }
+
+        OrtSession.SessionOptions options = null;
+        try {
+            options = sessionOptions();
+            options.addCUDA(cuda);
+            return ortEnvironment.createSession(onnx.toString(), options);
+        } catch (final Exception e) {
+            if (options != null) {
+                options.close();
+            }
+            LOGGER.warn("Could not use CUDA device {}; running on the CPU: {}", cuda, e.toString());
+            return null;
+        }
+
+    }
+
+    /**
+     * Has DJL load the CPU build of its tokenizer library, which is bundled, unless {@code RUST_FLAVOR} is set.
+     * On a host where DJL finds CUDA it otherwise picks a CUDA build and downloads it from publish.djl.ai, which
+     * fails without network access and stops the model loading, whatever {@value #DEVICE_ENV} says. Tokenizing
+     * runs on the CPU either way.
+     */
+    static void useCpuTokenizerLibrary(final UnaryOperator<String> environment, final UnaryOperator<String> properties,
+                                       final BiConsumer<String, String> setProperty) {
+        final String flavor = "RUST_FLAVOR";
+        final String fromEnvironment = environment.apply(flavor);
+        final String fromProperty = properties.apply(flavor);
+        if ((fromEnvironment == null || fromEnvironment.isBlank()) && (fromProperty == null || fromProperty.isBlank())) {
+            setProperty.accept(flavor, "cpu");
+        }
+    }
+
+    /** Where the model runs: {@code cpu} or {@code cuda:<device>}. */
+    String device() {
+        return device;
+    }
+
+    /**
+     * The CUDA device asked for, or -1 for the CPU: the system property, else the environment variable. {@code cpu}
+     * or unset is the CPU, {@code cuda} device 0, and {@code cuda:<n>} device n.
+     */
+    static int cudaDevice(final UnaryOperator<String> properties, final UnaryOperator<String> environment) {
+        String value = properties.apply(DEVICE_PROPERTY);
+        String name = DEVICE_PROPERTY;
+        if (value == null || value.isBlank()) {
+            value = environment.apply(DEVICE_ENV);
+            name = DEVICE_ENV;
+        }
+        if (value == null || value.isBlank() || value.strip().equalsIgnoreCase("cpu")) {
+            return -1;
+        }
+        final String device = value.strip().toLowerCase(Locale.ROOT);
+        if (device.equals("cuda")) {
+            return 0;
+        }
+        if (device.matches("cuda:\\d{1,9}")) {
+            return Integer.parseInt(device.substring(5));
+        }
+        throw new IllegalArgumentException(name + " must be cpu, cuda, or cuda:<device number>, not '" + value + "'.");
     }
 
     private static OrtSession.SessionOptions sessionOptions() throws Exception {

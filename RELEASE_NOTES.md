@@ -7,6 +7,8 @@ Full changelogs for each release are available in the [GitHub releases](https://
 ## Version 1.1.0 - Not yet released
 
 * Targets Phileas 4.5.0.
+* `PHEYE_ONNX_DEVICE` (or `pheye.onnx.device`) set to `cuda` or `cuda:<n>` runs the model on that GPU, with ONNX Runtime's GPU package (`onnxruntime_gpu`) in place of the CPU package and CUDA available; otherwise a warning is logged and the model runs on the CPU. The default is `cpu`.
+* The model now loads on a host where DJL finds CUDA. DJL's tokenizer chose a CUDA build of its native library there and downloaded it from publish.djl.ai, which failed without network access and stopped the model loading. This module now sets `RUST_FLAVOR` to `cpu` unless it is set, so DJL loads the CPU build it bundles.
 * The detector reports its model's `max_len` and `max_width` from `gliner_config.json` (`maxWords()` and `maxWidth()`), so Phileas 4.5.0's PhEye filter divides long text into windows the model reads whole.
 * ONNX Runtime uses `Runtime.availableProcessors()` intra-op threads, which follows a container's CPU set and quota, with spinning off. Previously it started a thread per physical core of the host, which in a container limited to 4 of 6 cores more than doubled the time for a long text, and under a CPU quota tripled it or worse. Set `PHEYE_ONNX_THREADS` or `pheye.onnx.threads` to override the count.
 * A model directory is loaded once per process and shared by every PhEye filter that names it. Previously each filter set loaded its own copy, so every policy, and every revision of one, held another copy of the model in memory.
