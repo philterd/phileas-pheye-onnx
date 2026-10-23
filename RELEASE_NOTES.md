@@ -4,6 +4,8 @@ Notable changes to phileas-pheye-onnx, most recent first.
 
 Full changelogs for each release are available in the [GitHub releases](https://github.com/philterd/phileas-pheye-onnx/releases).
 
+## Version 1.2.0 - Not yet released
+
 ## Version 1.1.0 - October 23, 2026
 
 * Targets Phileas 4.5.0.
