@@ -4,9 +4,10 @@ Notable changes to phileas-pheye-onnx, most recent first.
 
 Full changelogs for each release are available in the [GitHub releases](https://github.com/philterd/phileas-pheye-onnx/releases).
 
-## Version 1.1.0 - Not yet released
+## Version 1.1.0 - October 23, 2026
 
 * Targets Phileas 4.5.0.
+* Updates ONNX Runtime to 1.31.0 and DJL tokenizers to 0.39.0. A build that swaps in `onnxruntime_gpu` should use 1.31.0 to match.
 * `PHEYE_ONNX_DEVICE` (or `pheye.onnx.device`) set to `cuda` or `cuda:<n>` runs the model on that GPU, with ONNX Runtime's GPU package (`onnxruntime_gpu`) in place of the CPU package and CUDA available; otherwise a warning is logged and the model runs on the CPU. The default is `cpu`.
 * The model now loads on a host where DJL finds CUDA. DJL's tokenizer chose a CUDA build of its native library there and downloaded it from publish.djl.ai, which failed without network access and stopped the model loading. This module now sets `RUST_FLAVOR` to `cpu` unless it is set, so DJL loads the CPU build it bundles.
 * The detector reports its model's `max_len` and `max_width` from `gliner_config.json` (`maxWords()` and `maxWidth()`), so Phileas 4.5.0's PhEye filter divides long text into windows the model reads whole.

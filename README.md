@@ -30,7 +30,7 @@ Add the dependency alongside `phileas`:
 <dependency>
     <groupId>ai.philterd</groupId>
     <artifactId>phileas-pheye-onnx</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -42,7 +42,7 @@ matches the `phileas` you run:
 | phileas-pheye-onnx | phileas |
 |--------------------|---------|
 | 1.0.0              | 4.1.0   |
-| 1.1.0 (unreleased) | 4.5.0   |
+| 1.1.0              | 4.5.0   |
 
 Point a PhEye filter at a local model directory (policy JSON):
 

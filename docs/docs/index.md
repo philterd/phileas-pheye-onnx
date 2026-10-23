@@ -21,13 +21,13 @@ Add the dependency alongside `phileas`:
 <dependency>
     <groupId>ai.philterd</groupId>
     <artifactId>phileas-pheye-onnx</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
 Releases are published to Maven Central and resolve with no extra repository configuration.
 
-This module is versioned independently of `phileas` (like [`phisql`](https://github.com/philterd/phisql)), because it has its own API and release cadence. It does implement an SPI from `phileas` core, so each release targets a specific `phileas` version: `phileas-pheye-onnx` `1.0.0` targets `phileas` `4.1.0`. Use a `phileas-pheye-onnx` build that matches the `phileas` you run.
+This module is versioned independently of `phileas` (like [`phisql`](https://github.com/philterd/phisql)), because it has its own API and release cadence. It does implement an SPI from `phileas` core, so each release targets a specific `phileas` version: `phileas-pheye-onnx` `1.1.0` targets `phileas` `4.5.0`, and `1.0.0` targets `phileas` `4.1.0`. Use a `phileas-pheye-onnx` build that matches the `phileas` you run.
 
 Development builds are published as `-SNAPSHOT` versions to the Maven Central snapshot repository, which is not served from the default Maven Central repository. To use one, add that repository (`https://central.sonatype.com/repository/maven-snapshots/`) to your build. Snapshots are mutable and are periodically pruned, so pin a released version for anything you need to reproduce.
 

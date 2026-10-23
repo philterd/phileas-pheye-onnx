@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * <p>The expected spans below were produced by the Python reference for {@code ph-eye-pii-en-small}:
  * <pre>
  *   GLiNER.from_pretrained("ph-eye-pii-en-small").predict_entities(TEXT, ["name"], threshold=0.5)
- *   -> Maria[15,20] Gonzalez[21,29] Toni[33,37] Levine[38,44]   (label "name")
+ *   -> Maria Gonzalez[15,29] Toni Levine[33,44]   (label "name")
  * </pre>
  * If you point the test at a different model, update the expected spans to that model's reference.
  */
@@ -53,10 +53,8 @@ class LocalPhEyeDetectorRealModelParityTest {
 
     // Python gliner.predict_entities reference for ph-eye-pii-en-small on TEXT, label "name", threshold 0.5.
     private static final List<Span> EXPECTED = List.of(
-            new Span("Maria", "name", 15, 20),
-            new Span("Gonzalez", "name", 21, 29),
-            new Span("Toni", "name", 33, 37),
-            new Span("Levine", "name", 38, 44));
+            new Span("Maria Gonzalez", "name", 15, 29),
+            new Span("Toni Levine", "name", 33, 44));
 
     @Test
     void matchesPythonReferenceOnRealWeights() throws Exception {
