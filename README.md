@@ -1,5 +1,11 @@
 # phileas-pheye-onnx
 
+> **This module is now part of the [Phileas repository](https://github.com/philterd/phileas).**
+> Its source is at [`phileas-pheye-onnx/`](https://github.com/philterd/phileas/tree/main/phileas-pheye-onnx),
+> and development continues there. The coordinate `ai.philterd:phileas-pheye-onnx` is unchanged. Starting
+> with Phileas 4.6.0 its version follows Phileas, so it moves from `1.1.0` to `4.6.0`. Please open issues
+> in [philterd/phileas](https://github.com/philterd/phileas/issues).
+
 Optional **local (on-device) GLiNER inference** for the Phileas PhEye filter, via ONNX Runtime.
 
 Core [`phileas`](https://github.com/philterd/phileas) talks to a PhEye service over HTTP. This
